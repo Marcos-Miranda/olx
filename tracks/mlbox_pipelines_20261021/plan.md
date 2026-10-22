@@ -68,8 +68,8 @@ Tests use a local MLflow store (sqlite in `tmp_path`, set through `MLFLOW_TRACKI
   - `DockerExecutor(image, pipeline_file: Path)` implementing `Executor`: writes `step.json` and `hyperparameters.json` to `<run_dir>/steps/<step>/config`, runs a container with the step's `cpus`/`memory` limits, the host UID/GID (so the files in `.mlbox` stay owned by the user), `HOME=/tmp`, the `mlbox` network and `MLFLOW_TRACKING_URI` (from `MLBOX_CONTAINER_TRACKING_URI`, default `http://mlflow:5000`), and these mounts: project directory at `/opt/ml/code` (read-only), config dir at `/opt/ml/input/config`, run data dir at `/opt/ml/data`, step output dir at `/opt/ml/output`. It streams the container logs as `[<step>] <line>`, waits for exit, removes the container and builds the `StepResult` from `result.json` or `failure`. If neither exists, the error is the exit code (e.g. 137 when the memory limit was hit).
 
 ## Block 6: CLI
-- [ ] Test: `mlbox run` with parameters that fail the pipeline's model exits non-zero, prints the validation error and creates no MLflow run (AC6).
-- [ ] `main.py` (remove the `hello` placeholder):
+- [x] Test: `mlbox run` with parameters that fail the pipeline's model exits non-zero, prints the validation error and creates no MLflow run (AC6).
+- [x] `main.py` (remove the `hello` placeholder):
   - `run(pipeline_file, -p/--param key=value (repeatable), --seed)`: loads the pipeline, parses each value as JSON when possible and as a string otherwise, validates the parameters with the model (exit 1 on error), generates a seed if none was given, builds the image, runs the `Runner` with the `DockerExecutor`, prints the run ID and the final status, and exits 1 if the run failed.
   - `list(--pipeline)`: a table of run ID, pipeline, status, start time and duration.
   - `show(run_id)`: pipeline, status, parameters, seed and one line per step with its status.
