@@ -18,19 +18,19 @@ Modules under `src/mlbox/`:
 Tests use a local MLflow store (sqlite in `tmp_path`, set through `MLFLOW_TRACKING_URI`), so they check real persisted state without the compose server or Docker. Docker execution is verified end to end by the example (AC7–AC9).
 
 ## Block 1: Steps and pipeline graph
-- [ ] Add dependencies: `pydantic`, `mlflow-skinny` (tracking client only, keeps the image small) and `docker`. Add `mlflow` as a dev dependency so tests can use a local sqlite store.
-- [ ] Test: defining steps and calling them at module level runs no step code, and a pipeline built from only the final step includes its upstream steps, with `train` depending on `preprocess` and `preprocess` coming first in the execution order (AC1).
-- [ ] Test: calling a step with an argument that is neither JSON nor a `StepOutput` raises, calling a step twice raises, and a pipeline listing a step that was never called raises (AC2).
-- [ ] Test: a step's bound arguments resolve their references, including indexed ones like `data["train"]`, against a mapping of upstream results.
-- [ ] `step.py`:
+- [x] Add dependencies: `pydantic`, `mlflow-skinny` (tracking client only, keeps the image small) and `docker`. Add `mlflow` as a dev dependency so tests can use a local sqlite store.
+- [x] Test: defining steps and calling them at module level runs no step code, and a pipeline built from only the final step includes its upstream steps, with `train` depending on `preprocess` and `preprocess` coming first in the execution order (AC1).
+- [x] Test: calling a step with an argument that is neither JSON nor a `StepOutput` raises, calling a step twice raises, and a pipeline listing a step that was never called raises (AC2).
+- [x] Test: a step's bound arguments resolve their references, including indexed ones like `data["train"]`, against a mapping of upstream results.
+- [x] `step.py`:
   - `step(cpus: float = 1, memory: str = "1g") -> Callable[[Callable], Step]`.
   - `Step` keeps the function (`func`), `name`, `cpus` and `memory`, plus the arguments bound by its single call. `__call__` checks every argument (JSON literal or `StepOutput`, nested in lists and dicts too), stores them and returns `StepOutput(step)`. `dependencies` returns the steps referenced by the arguments. `resolve_arguments(results: dict[str, Any]) -> tuple[list, dict]` replaces references with values.
   - `StepOutput(step, path: tuple[str | int, ...] = ())`: `__getitem__` returns a new reference with the key appended. `resolve(results)` takes the step's result and walks the path.
   - `to_json_value(value) -> Any`: converts `Path` to `str` (recursively) and raises if the result isn't JSON-serializable. Used on step return values.
-- [ ] `pipeline.py`:
+- [x] `pipeline.py`:
   - `Pipeline(name, parameters, steps, requirements=None)`: collects the listed steps and their transitive dependencies, raises if a listed step was never called or if two steps share a name. Exposes `steps: dict[str, Step]` (in execution order, a topological sort) and `dependencies(name) -> set[str]`.
-- [ ] Test: `load_pipeline` returns the only `Pipeline` defined in a file, and raises when the file defines none or several.
-- [ ] `load_pipeline(path: Path) -> Pipeline`: imports the file as a module (adding its directory to `sys.path` so sibling modules can be imported) and returns the single `Pipeline` instance among its globals.
+- [x] Test: `load_pipeline` returns the only `Pipeline` defined in a file, and raises when the file defines none or several.
+- [x] `load_pipeline(path: Path) -> Pipeline`: imports the file as a module (adding its directory to `sys.path` so sibling modules can be imported) and returns the single `Pipeline` instance among its globals.
 
 ## Block 2: MLflow tracking
 - [ ] Test: `start_run` creates a `RUNNING` run in the experiment named after the pipeline, with the parameters and the seed as params and every step `pending`.
