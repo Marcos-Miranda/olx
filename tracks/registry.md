@@ -8,3 +8,4 @@ This file maintains the registry of all development tracks for the project.
 
 | Status | Track ID | Folder |
 | ------ | -------- | ------ | 
+| `not_started` | mlbox_pipelines_20261021 | [tracks/mlbox_pipelines_20261021](mlbox_pipelines_20261021/) |
