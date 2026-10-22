@@ -63,7 +63,7 @@ def _prepare(root: Path, step_name: str) -> str:
     (root / "data").mkdir()
     (code / "pipeline.py").write_text(PIPELINE_SOURCE)
     pipeline = load_pipeline(code / "pipeline.py")
-    run_id = start_run(pipeline, pipeline.parameters(n=7), seed=123)
+    run_id = start_run(pipeline, pipeline.parameters(n=7), seed=123, image="mlbox:test")
     (config / "hyperparameters.json").write_text(json.dumps({"n": 7}))
     step = {"pipeline_file": "pipeline.py", "step": step_name, "seed": 123, "run_id": run_id}
     step |= {"args": [1], "kwargs": {"b": 2}} if step_name == "work" else {"args": [], "kwargs": {}}

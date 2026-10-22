@@ -70,7 +70,7 @@ def test_runner_runs_independent_steps_in_parallel_after_their_dependencies(tmp_
     executor = FakeExecutor({"a": {"x": 1}, "b": 10, "c": 20, "d": 30})
     runner = Runner(executor, runs_dir=tmp_path / "runs")
 
-    run_id = runner.run(_diamond(), Params(n=4), seed=9)
+    run_id = runner.run(_diamond(), Params(n=4), seed=9, image="mlbox:test")
 
     assert executor.started["b"] < executor.ended["c"] and executor.started["c"] < executor.ended["b"]
     assert executor.started["b"] >= executor.ended["a"] and executor.started["c"] >= executor.ended["a"]
@@ -113,7 +113,7 @@ def test_runner_skips_unstarted_steps_after_a_failure_and_lets_running_ones_fini
     pipeline = Pipeline("failing", Params, steps=[after_fails, after_slow])
     executor = FakeExecutor({}, failing={"fails"}, delays={"fails": 0.05, "slow": 0.4})
 
-    run_id = Runner(executor, runs_dir=tmp_path / "runs").run(pipeline, Params(), seed=1)
+    run_id = Runner(executor, runs_dir=tmp_path / "runs").run(pipeline, Params(), seed=1, image="mlbox:test")
 
     assert set(executor.jobs) == {"first", "fails", "slow"}
     info = get_run(run_id)

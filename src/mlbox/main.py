@@ -38,7 +38,7 @@ def run(
     except RuntimeError as error:
         _fail(str(error))
     runner = Runner(DockerExecutor(image, pipeline_file), on_start=lambda run_id: typer.echo(f"Run ID: {run_id}"))
-    run_id = runner.run(pipeline, params, seed if seed is not None else random.randint(0, 2**31 - 1))
+    run_id = runner.run(pipeline, params, seed if seed is not None else random.randint(0, 2**31 - 1), image)
 
     status = tracking.get_run(run_id).status
     typer.echo(f"Status: {status}")
@@ -67,6 +67,7 @@ def show(run_id: Annotated[str, typer.Argument(help="ID of the run")]) -> None:
     typer.echo(f"Pipeline: {info.pipeline}")
     typer.echo(f"Status:   {info.status}")
     typer.echo(f"Seed:     {info.seed}")
+    typer.echo(f"Image:    {info.image or '-'}")
     typer.echo("Parameters:")
     for key, value in info.params.items():
         typer.echo(f"  {key} = {value}")

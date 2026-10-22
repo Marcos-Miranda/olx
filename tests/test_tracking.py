@@ -23,8 +23,8 @@ def _pipeline(name: str = "demo") -> Pipeline:
     return Pipeline(name, Params, steps=[second])
 
 
-def test_start_run_creates_a_running_run_with_params_seed_and_pending_steps() -> None:
-    run_id = start_run(_pipeline(), Params(n=5), seed=42)
+def test_start_run_creates_a_running_run_with_params_seed_image_and_pending_steps() -> None:
+    run_id = start_run(_pipeline(), Params(n=5), seed=42, image="mlbox:test")
 
     run = mlflow.MlflowClient().get_run(run_id)
     experiment = mlflow.MlflowClient().get_experiment(run.info.experiment_id)
@@ -35,11 +35,12 @@ def test_start_run_creates_a_running_run_with_params_seed_and_pending_steps() ->
     assert info.status == "RUNNING"
     assert info.params == {"n": "5", "name": "x"}
     assert info.seed == 42
+    assert info.image == "mlbox:test"
     assert info.step_statuses == {"first": "pending", "second": "pending"}
 
 
 def test_step_statuses_and_the_final_status_are_reflected_by_get_run() -> None:
-    run_id = start_run(_pipeline(), Params(), seed=1)
+    run_id = start_run(_pipeline(), Params(), seed=1, image="mlbox:test")
 
     set_step_status(run_id, "first", "succeeded")
     set_step_status(run_id, "second", "skipped")
@@ -52,7 +53,7 @@ def test_step_statuses_and_the_final_status_are_reflected_by_get_run() -> None:
 
 
 def test_end_run_marks_a_successful_run_as_finished() -> None:
-    run_id = start_run(_pipeline(), Params(), seed=1)
+    run_id = start_run(_pipeline(), Params(), seed=1, image="mlbox:test")
 
     end_run(run_id, succeeded=True)
 
@@ -60,9 +61,9 @@ def test_end_run_marks_a_successful_run_as_finished() -> None:
 
 
 def test_list_runs_returns_only_mlbox_runs_newest_first_and_filters_by_pipeline() -> None:
-    older = start_run(_pipeline("alpha"), Params(), seed=1)
-    newer = start_run(_pipeline("beta"), Params(), seed=2)
-    newest = start_run(_pipeline("alpha"), Params(), seed=3)
+    older = start_run(_pipeline("alpha"), Params(), seed=1, image="mlbox:test")
+    newer = start_run(_pipeline("beta"), Params(), seed=2, image="mlbox:test")
+    newest = start_run(_pipeline("alpha"), Params(), seed=3, image="mlbox:test")
     with mlflow.start_run(run_name="not-mlbox"):
         pass
 

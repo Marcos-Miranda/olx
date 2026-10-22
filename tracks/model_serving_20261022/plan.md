@@ -13,10 +13,10 @@ Changed and new modules under `src/mlbox/`:
 Tests keep using the local sqlite MLflow store. A shared fixture registers a small real model (features of type double, long, boolean and string, with a `predict` method returning one value per row and a `predict_proba` method returning two) through `Context.register_model`, inside a run created by `tracking.start_run`. So lookup and serving tests run against real persisted models. The container itself is verified end to end with the iris example (AC6).
 
 ## Block 1: Training image tracking
-- [ ] Test: `start_run` with an image logs it, and `get_run` returns it as `RunInfo.image` (extends the existing `start_run` test) (AC1).
-- [ ] `tracking.py`: `start_run(pipeline, params, seed, image: str)` also sets the tag `mlbox.image`. `RunInfo` gets `image: str | None` (`None` for runs created before this track).
-- [ ] `runner.py`: `Runner.run(pipeline, params, seed, image: str)` passes the image to `start_run`. Update the runner tests to pass one.
-- [ ] `main.py`: `run` passes the image returned by `build_pipeline_image` to the runner. `show` prints an `Image:` line.
+- [x] Test: `start_run` with an image logs it, and `get_run` returns it as `RunInfo.image` (extends the existing `start_run` test) (AC1).
+- [x] `tracking.py`: `start_run(pipeline, params, seed, image: str)` also sets the tag `mlbox.image`. `RunInfo` gets `image: str | None` (`None` for runs created before this track).
+- [x] `runner.py`: `Runner.run(pipeline, params, seed, image: str)` passes the image to `start_run`. Update the runner tests to pass one.
+- [x] `main.py`: `run` passes the image returned by `build_pipeline_image` to the runner. `show` prints an `Image:` line.
 
 ## Block 2: Model version lookup
 - [ ] Test fixture (`conftest.py`): a factory that registers the small test model under a given name, in a run with a given image (or in a plain MLflow run without mlbox tags), and returns the version.

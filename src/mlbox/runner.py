@@ -58,9 +58,9 @@ class Runner:
         self.runs_dir = runs_dir
         self.on_start = on_start
 
-    def run(self, pipeline: Pipeline, params: BaseModel, seed: int) -> str:
-        """Execute the pipeline and return the run ID. The final status is stored in MLflow."""
-        run_id = tracking.start_run(pipeline, params, seed)
+    def run(self, pipeline: Pipeline, params: BaseModel, seed: int, image: str) -> str:
+        """Execute the pipeline, its steps running in `image`, and return the run ID. Final status goes to MLflow."""
+        run_id = tracking.start_run(pipeline, params, seed, image)
         if self.on_start:
             self.on_start(run_id)
         run_dir = self.runs_dir / run_id

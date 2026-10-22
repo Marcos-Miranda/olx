@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from mlbox.pipeline import Pipeline
 
 PIPELINE_TAG = "mlbox.pipeline"
+IMAGE_TAG = "mlbox.image"
 SEED_PARAM = "random_seed"
 _STEP_TAG_PREFIX = "mlbox.step."
 _STEP_TAG_SUFFIX = ".status"
@@ -25,14 +26,18 @@ class RunInfo:
     params: dict[str, str]
     seed: int
     step_statuses: dict[str, str]
+    image: str | None
 
 
-def start_run(pipeline: Pipeline, params: BaseModel, seed: int) -> str:
-    """Create the MLflow run of an execution, with every step pending, and return its ID."""
+def start_run(pipeline: Pipeline, params: BaseModel, seed: int, image: str) -> str:
+    """Create the MLflow run of an execution, with every step pending, and return its ID.
+
+    The image the steps run in is stored as the `mlbox.image` tag, so a model trained by the run can be served with it.
+    """
     client = _client()
     experiment = client.get_experiment_by_name(pipeline.name)
     experiment_id = experiment.experiment_id if experiment else client.create_experiment(pipeline.name)
-    tags = {PIPELINE_TAG: pipeline.name} | {_step_tag(name): "pending" for name in pipeline.steps}
+    tags = {PIPELINE_TAG: pipeline.name, IMAGE_TAG: image} | {_step_tag(name): "pending" for name in pipeline.steps}
     run_id = client.create_run(experiment_id, tags=tags).info.run_id
     for key, value in params.model_dump(mode="json").items():
         client.log_param(run_id, key, value)
@@ -91,4 +96,5 @@ def _to_run_info(run: Run) -> RunInfo:
         params=params,
         seed=int(params.pop(SEED_PARAM)),
         step_statuses=step_statuses,
+        image=tags.get(IMAGE_TAG),
     )
