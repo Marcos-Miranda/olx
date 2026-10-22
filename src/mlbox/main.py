@@ -8,7 +8,7 @@ import typer
 from pydantic import ValidationError
 
 from mlbox import tracking
-from mlbox.docker import DockerExecutor, build_pipeline_image
+from mlbox.docker import DockerExecutor, build_pipeline_image, serve_model
 from mlbox.pipeline import load_pipeline
 from mlbox.runner import Runner
 
@@ -74,6 +74,32 @@ def show(run_id: Annotated[str, typer.Argument(help="ID of the run")]) -> None:
     typer.echo("Steps:")
     for name, status in info.step_statuses.items():
         typer.echo(f"  {name}: {status}")
+
+
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+def serve(
+    context: typer.Context,
+    model: Annotated[str, typer.Option(help="Name of the registered model")],
+    version: Annotated[int | None, typer.Option(help="Model version (the latest when omitted)")] = None,
+    port: Annotated[int, typer.Option(help="Host port to publish the API on")] = 8080,
+) -> None:
+    """Serve a registered model through a REST API, in a container of the image that trained it.
+
+    Extra arguments are passed to uvicorn, e.g. `mlbox serve --model iris --workers 2`. Runs until Ctrl+C.
+    """
+    try:
+        info = tracking.get_model_version(model, version)
+    except ValueError as error:
+        _fail(str(error))
+    typer.echo(f"Model:   {info.name}")
+    typer.echo(f"Version: {info.version}")
+    typer.echo(f"Image:   {info.image}")
+    typer.echo(f"URL:     http://localhost:{port}")
+    try:
+        exit_code = serve_model(info, port, context.args)
+    except RuntimeError as error:
+        _fail(str(error))
+    raise typer.Exit(exit_code)
 
 
 def _fail(message: str) -> Any:

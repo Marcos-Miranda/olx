@@ -12,9 +12,11 @@ from docker.models.containers import Container
 
 from mlbox.pipeline import Pipeline
 from mlbox.runner import StepJob, StepResult
+from mlbox.tracking import ModelVersionInfo
 
 BASE_IMAGE = "mlbox:latest"
 NETWORK = "mlbox"
+_SERVING_PORT = 8080
 
 _PIPELINE_DOCKERFILE = f"""FROM {BASE_IMAGE}
 COPY requirements.txt /tmp/requirements.txt
@@ -77,10 +79,7 @@ class DockerExecutor:
             nano_cpus=int(job.step.cpus * 1e9),
             mem_limit=job.step.memory,
             user=f"{os.getuid()}:{os.getgid()}",
-            environment={
-                "HOME": "/tmp",
-                "MLFLOW_TRACKING_URI": os.environ.get("MLBOX_CONTAINER_TRACKING_URI", "http://mlflow:5000"),
-            },
+            environment=_container_environment(),
             network=NETWORK,
             volumes={
                 str(self.pipeline_file.parent): {"bind": "/opt/ml/code", "mode": "ro"},
@@ -100,6 +99,44 @@ class DockerExecutor:
         if (output_dir / "failure").exists():
             return StepResult(succeeded=False, value=None, error=(output_dir / "failure").read_text())
         return StepResult(succeeded=False, value=None, error=f"The container exited with code {exit_code}")
+
+
+def serve_model(model: ModelVersionInfo, port: int, uvicorn_args: list[str]) -> int:
+    """Serve a registered model from the image that trained it, streaming the logs until the container exits or the
+    user interrupts with Ctrl+C, and return the container's exit code (0 on Ctrl+C)."""
+    client = docker.from_env()
+    try:
+        client.images.get(model.image)
+    except ImageNotFound:
+        raise RuntimeError(f"The image {model.image} that trained the model doesn't exist locally")
+
+    container = client.containers.run(
+        model.image,
+        ["mlbox.serving:app", "--host", "0.0.0.0", "--port", str(_SERVING_PORT), *uvicorn_args],
+        entrypoint="uvicorn",
+        detach=True,
+        user=f"{os.getuid()}:{os.getgid()}",
+        environment=_container_environment(MLBOX_MODEL_NAME=model.name, MLBOX_MODEL_VERSION=str(model.version)),
+        network=NETWORK,
+        ports={f"{_SERVING_PORT}/tcp": port},
+    )
+    try:
+        try:
+            _stream_logs(container, "serve")
+            return int(container.wait()["StatusCode"])
+        except KeyboardInterrupt:
+            return 0
+    finally:
+        container.stop()
+        container.remove(force=True)
+
+
+def _container_environment(**extra: str) -> dict[str, str]:
+    return {
+        "HOME": "/tmp",
+        "MLFLOW_TRACKING_URI": os.environ.get("MLBOX_CONTAINER_TRACKING_URI", "http://mlflow:5000"),
+        **extra,
+    }
 
 
 def _build_context(requirements: bytes) -> io.BytesIO:

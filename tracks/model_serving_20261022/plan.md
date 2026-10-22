@@ -41,12 +41,12 @@ Tests keep using the local sqlite MLflow store. A shared fixture registers a sma
   - `POST /predict` takes a `PredictRequest` body. It builds a DataFrame from the records. Integer values in columns the schema declares `double`/`float` become floats, because JSON doesn't tell `5` from `5.0` and MLflow rejects `int64` for a `double` column. Other values go to MLflow as they are. It returns the prediction as `list[list[float]]`: the output turned into a float array and reshaped to one row per instance. An `MlflowException` from `predict` becomes an HTTP 422 with the error message.
 
 ## Block 4: `mlbox serve`
-- [ ] Test: `mlbox serve --model <unknown>` and `mlbox serve` for a model whose run has no `mlbox.image` tag exit non-zero with the lookup error, before touching Docker (AC5).
-- [ ] `docker.py`: `serve_model(model: ModelVersionInfo, port: int, uvicorn_args: list[str]) -> int`:
+- [x] Test: `mlbox serve --model <unknown>` and `mlbox serve` for a model whose run has no `mlbox.image` tag exit non-zero with the lookup error, before touching Docker (AC5).
+- [x] `docker.py`: `serve_model(model: ModelVersionInfo, port: int, uvicorn_args: list[str]) -> int`:
   - Raises `RuntimeError` if `model.image` doesn't exist locally (e.g. it was removed or rebuilt).
   - Runs a detached container from the image with entrypoint `uvicorn` and command `mlbox.serving:app --host 0.0.0.0 --port 8080 <uvicorn_args>`. The container gets the `mlbox` network, the host UID/GID, `HOME=/tmp`, `MLFLOW_TRACKING_URI` (as for steps), `MLBOX_MODEL_NAME` and `MLBOX_MODEL_VERSION`, and port 8080 published on `port`.
   - Streams its logs (prefix `[serve]`, reusing `_stream_logs`) until it exits or Ctrl+C. It always stops and removes the container, and returns the exit code (0 on Ctrl+C).
-- [ ] `main.py`: `serve(--model, --version, --port=8080)`, with Typer's `allow_extra_args` and `ignore_unknown_options` so the extra arguments (`ctx.args`) go to uvicorn. It looks up the version with `get_model_version` (exit 1 with the message on `ValueError`) and prints the model, version, image and `http://localhost:<port>`. It then calls `serve_model` (exit 1 on `RuntimeError`) and exits with its code.
+- [x] `main.py`: `serve(--model, --version, --port=8080)`, with Typer's `allow_extra_args` and `ignore_unknown_options` so the extra arguments (`ctx.args`) go to uvicorn. It looks up the version with `get_model_version` (exit 1 with the message on `ValueError`) and prints the model, version, image and `http://localhost:<port>`. It then calls `serve_model` (exit 1 on `RuntimeError`) and exits with its code.
 
 ## Block 5: Docs
 - [ ] `docs/project.md`:
