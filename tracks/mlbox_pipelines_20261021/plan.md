@@ -53,9 +53,9 @@ Tests use a local MLflow store (sqlite in `tmp_path`, set through `MLFLOW_TRACKI
   - `python -m mlbox.worker` calls `run_step()` and exits with its return code.
 
 ## Block 4: Runner
-- [ ] Test: with a fake executor recording start and end times, independent steps overlap, a step starts only after its dependencies finished and receives their resolved values, `run` returns the run ID, and MLflow shows the run `FINISHED` with every step `succeeded` (AC5).
-- [ ] Test: when a step fails, steps already running finish, steps not started are `skipped`, the failed step is `failed` and the run is `FAILED` (AC5).
-- [ ] `runner.py`:
+- [x] Test: with a fake executor recording start and end times, independent steps overlap, a step starts only after its dependencies finished and receives their resolved values, `run` returns the run ID, and MLflow shows the run `FINISHED` with every step `succeeded` (AC5).
+- [x] Test: when a step fails, steps already running finish, steps not started are `skipped`, the failed step is `failed` and the run is `FAILED` (AC5).
+- [x] `runner.py`:
   - `StepJob` dataclass: run ID, step, resolved args and kwargs, the parameters JSON, seed and the host run directory. `StepResult` dataclass: `succeeded`, `value`, `error`.
   - `Executor` protocol with `execute(job: StepJob) -> StepResult`.
   - `Runner(executor, runs_dir: Path = Path(".mlbox/runs"))` with `run(pipeline, params, seed) -> str`. It creates the MLflow run, creates `runs_dir/<run_id>/data`, then loops: submits every step whose dependencies all succeeded to a `ThreadPoolExecutor` (marking it `running`), waits for the first completion, records the result and the step status. After a failure it submits nothing else, waits for the running steps, marks the rest `skipped` and ends the run.
