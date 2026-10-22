@@ -1,8 +1,19 @@
+from collections.abc import Callable
+
 import mlflow
+import pytest
 from pydantic import BaseModel
 
 from mlbox import Pipeline, step
-from mlbox.tracking import end_run, get_run, list_runs, set_step_status, start_run
+from mlbox.tracking import (
+    ModelVersionInfo,
+    end_run,
+    get_model_version,
+    get_run,
+    list_runs,
+    set_step_status,
+    start_run,
+)
 
 
 class Params(BaseModel):
@@ -69,3 +80,32 @@ def test_list_runs_returns_only_mlbox_runs_newest_first_and_filters_by_pipeline(
 
     assert [run.run_id for run in list_runs()] == [newest, newer, older]
     assert [run.run_id for run in list_runs(pipeline="alpha")] == [newest, older]
+
+
+def test_get_model_version_returns_the_highest_version_and_the_image_of_its_run(
+    register_test_model: Callable[..., int],
+) -> None:
+    first = register_test_model("iris", image="mlbox:first")
+    second = register_test_model("iris", image="mlbox:second")
+    register_test_model("other", image="mlbox:other")
+
+    assert get_model_version("iris") == ModelVersionInfo("iris", second, "mlbox:second")
+    assert get_model_version("iris", first) == ModelVersionInfo("iris", first, "mlbox:first")
+
+
+@pytest.mark.parametrize(
+    ("name", "version", "message"),
+    [
+        ("missing", None, "Model 'missing' does not exist or has no versions"),
+        ("known", 99, "Version 99 of model 'known' does not exist"),
+        ("plain", None, "mlbox.image"),
+    ],
+)
+def test_get_model_version_raises_a_clear_error_for_an_unusable_model(
+    register_test_model: Callable[..., int], name: str, version: int | None, message: str
+) -> None:
+    register_test_model("known")
+    register_test_model("plain", image=None)
+
+    with pytest.raises(ValueError, match=message):
+        get_model_version(name, version)

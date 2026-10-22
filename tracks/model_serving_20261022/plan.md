@@ -19,10 +19,10 @@ Tests keep using the local sqlite MLflow store. A shared fixture registers a sma
 - [x] `main.py`: `run` passes the image returned by `build_pipeline_image` to the runner. `show` prints an `Image:` line.
 
 ## Block 2: Model version lookup
-- [ ] Test fixture (`conftest.py`): a factory that registers the small test model under a given name, in a run with a given image (or in a plain MLflow run without mlbox tags), and returns the version.
-- [ ] Test: `get_model_version(name)` returns the highest version and the image of its training run. With `version`, it returns that version.
-- [ ] Test: `get_model_version` raises `ValueError` with a clear message for an unknown model, an unknown version, and a version whose run has no `mlbox.image` tag.
-- [ ] `tracking.py`:
+- [x] Test fixture (`conftest.py`): a factory that registers the small test model under a given name, in a run with a given image (or in a plain MLflow run without mlbox tags), and returns the version.
+- [x] Test: `get_model_version(name)` returns the highest version and the image of its training run. With `version`, it returns that version.
+- [x] Test: `get_model_version` raises `ValueError` with a clear message for an unknown model, an unknown version, and a version whose run has no `mlbox.image` tag.
+- [x] `tracking.py`:
   - `ModelVersionInfo` dataclass: `name`, `version: int`, `image: str`.
   - `get_model_version(name: str, version: int | None = None) -> ModelVersionInfo`. Without `version`, it searches the model's versions and takes the highest number. With it, it reads that version. MLflow's "does not exist" errors become `ValueError`. It reads the image from the `mlbox.image` tag of the version's `run_id`.
 

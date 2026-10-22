@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from mlflow import MlflowClient
 from mlflow.entities import Run, RunStatus
+from mlflow.exceptions import MlflowException
 from pydantic import BaseModel
 
 from mlbox.pipeline import Pipeline
@@ -27,6 +28,15 @@ class RunInfo:
     seed: int
     step_statuses: dict[str, str]
     image: str | None
+
+
+@dataclass
+class ModelVersionInfo:
+    """A registered model version and the image of the run that trained it."""
+
+    name: str
+    version: int
+    image: str
 
 
 def start_run(pipeline: Pipeline, params: BaseModel, seed: int, image: str) -> str:
@@ -69,6 +79,34 @@ def list_runs(pipeline: str | None = None) -> list[RunInfo]:
     runs = client.search_runs(experiment_ids, order_by=["attributes.start_time DESC"], max_results=1000)
     infos = [_to_run_info(run) for run in runs if PIPELINE_TAG in run.data.tags]
     return [info for info in infos if pipeline is None or info.pipeline == pipeline]
+
+
+def get_model_version(name: str, version: int | None = None) -> ModelVersionInfo:
+    """Return a registered model version (the latest when `version` is omitted) and its training image.
+
+    Raises `ValueError` if the model or version doesn't exist, or if its run has no `mlbox.image` tag.
+    """
+    client = _client()
+    if version is None:
+        versions = client.search_model_versions(f"name='{name}'")
+        if not versions:
+            raise ValueError(f"Model '{name}' does not exist or has no versions")
+        model_version = max(versions, key=lambda candidate: int(candidate.version))
+    else:
+        try:
+            model_version = client.get_model_version(name, str(version))
+        except MlflowException as error:
+            if error.error_code != "RESOURCE_DOES_NOT_EXIST":
+                raise
+            raise ValueError(f"Version {version} of model '{name}' does not exist") from error
+
+    image = client.get_run(model_version.run_id).data.tags.get(IMAGE_TAG) if model_version.run_id else None
+    if image is None:
+        raise ValueError(
+            f"Version {model_version.version} of model '{name}' was not trained by mlbox (its run has no "
+            f"'{IMAGE_TAG}' tag), so there is no image to serve it with"
+        )
+    return ModelVersionInfo(name, int(model_version.version), image)
 
 
 def _client() -> MlflowClient:
