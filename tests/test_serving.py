@@ -91,3 +91,20 @@ def test_predict_rejects_an_instance_that_does_not_match_the_schema_with_the_mlf
 
 def test_predict_rejects_an_empty_array(client: TestClient) -> None:
     assert client.post("/predict", json=[]).status_code == 422
+
+
+def test_predict_rejects_a_missing_feature_in_any_instance_not_only_in_a_single_one(client: TestClient) -> None:
+    complete = {"height": 2.0, "count": 3, "active": True, "kind": "a"}
+    incomplete = {"height": 1.5, "count": 2, "active": False}
+
+    response = client.post("/predict", json=[complete, incomplete])
+
+    assert response.status_code == 422
+    assert "kind" in response.json()["detail"]
+
+
+def test_predict_accepts_a_null_value_and_leaves_it_to_the_model(client: TestClient) -> None:
+    response = client.post("/predict", json=[{"height": 2.0, "count": 3, "active": True, "kind": None}])
+
+    assert response.status_code == 200
+    assert response.json() == [[6.0]]

@@ -26,7 +26,7 @@ class ServedModel:
     input_example: list[dict[str, Any]] | None
 
 
-class PredictRequest(RootModel[Annotated[list[dict[str, bool | int | float | str]], Field(min_length=1)]]):
+class PredictRequest(RootModel[Annotated[list[dict[str, bool | int | float | str | None]], Field(min_length=1)]]):
     """One or more instances, each mapping feature names to values."""
 
 
@@ -90,6 +90,11 @@ async def info(served: Annotated[ServedModel, Depends(get_model)]) -> InfoRespon
 @app.post("/predict")
 def predict(body: PredictRequest, served: Annotated[ServedModel, Depends(get_model)]) -> list[list[float]]:
     """Run the model on the instances and return one list of floats per instance."""
+    # A DataFrame fills a feature missing from some instances with null, which MLflow would not flag as missing
+    required = [column["name"] for column in served.input_schema if column["required"]]
+    for position, instance in enumerate(body.root):
+        if missing := [name for name in required if name not in instance]:
+            raise HTTPException(status_code=422, detail=f"Instance {position} is missing inputs {missing}")
     data = pd.DataFrame(body.root)
     for column in served.input_schema:
         # JSON doesn't tell `5` from `5.0`, and MLflow rejects `int64` for a double column

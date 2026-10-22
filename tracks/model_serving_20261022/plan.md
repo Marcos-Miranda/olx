@@ -34,11 +34,11 @@ Tests keep using the local sqlite MLflow store. A shared fixture registers a sma
 - [x] `serving.py`:
   - `ServedModel` dataclass: `name`, `version`, `model` (the MLflow `PyFuncModel`), `input_schema` (the signature's input columns as `[{"name", "type", "required"}]`) and `input_example` (records, or `None`).
   - `load_served_model(name: str, version: int) -> ServedModel`: loads `models:/<name>/<version>` with `mlflow.pyfunc.load_model` and reads the schema and the input example from it.
-  - `PredictRequest`, a Pydantic `RootModel` over `list[dict[str, bool | int | float | str]]` with at least one item (`bool` first in the union so `true` stays a boolean). The body stays a plain JSON array.
+  - `PredictRequest`, a Pydantic `RootModel` over `list[dict[str, bool | int | float | str | None]]` with at least one item (`bool` first in the union so `true` stays a boolean). The body stays a plain JSON array.
   - `app = FastAPI(lifespan=...)`. The lifespan reads `MLBOX_MODEL_NAME` and `MLBOX_MODEL_VERSION` and loads the model into `app.state.model`. If the model has an input example, the lifespan adds it as `examples` to the `PredictRequest` schema of the OpenAPI document (FastAPI builds the body schema when the route is defined, so changing the Pydantic model later has no effect), so `/docs` shows it pre-filled.
   - `get_model(request: Request) -> ServedModel` returns `request.app.state.model`. Endpoints receive it with `Depends(get_model)`.
   - `GET /health` returns `{"status": "ok"}`. `GET /info` returns `name`, `version` and `input_schema` (Pydantic response model).
-  - `POST /predict` takes a `PredictRequest` body. It builds a DataFrame from the records. Integer values in columns the schema declares `double`/`float` become floats, because JSON doesn't tell `5` from `5.0` and MLflow rejects `int64` for a `double` column. Other values go to MLflow as they are. It returns the prediction as `list[list[float]]`: the output turned into a float array and reshaped to one row per instance. An `MlflowException` from `predict` becomes an HTTP 422 with the error message.
+  - `POST /predict` takes a `PredictRequest` body. It builds a DataFrame from the records. Integer values in columns the schema declares `double`/`float` become floats, because JSON doesn't tell `5` from `5.0` and MLflow rejects `int64` for a `double` column. Other values go to MLflow as they are. It returns the prediction as `list[list[float]]`: the output turned into a float array and reshaped to one row per instance. A required feature missing from any instance is rejected with a 422 before that, because a DataFrame fills it with null and MLflow wouldn't notice. An `MlflowException` from `predict` becomes an HTTP 422 with the error message.
 
 ## Block 4: `mlbox serve`
 - [x] Test: `mlbox serve --model <unknown>` and `mlbox serve` for a model whose run has no `mlbox.image` tag exit non-zero with the lookup error, before touching Docker (AC5).
@@ -54,12 +54,12 @@ Tests keep using the local sqlite MLflow store. A shared fixture registers a sma
   - A new row in the CLI table and the `mlbox.image` tag in the Tracking section.
 
 ## Final verification
-- [ ] `uv run ruff check` and `uv run ruff format --check` pass
-- [ ] `uv run mypy .` passes
-- [ ] `uv run pytest` passes
-- [ ] AC1: An execution's run has the `mlbox.image` tag (Block 1 test)
-- [ ] AC2: `/health`, `/info` and `/predict` work for a registered model, including integer, boolean and string features (Block 3 tests)
-- [ ] AC3: `/predict` returns 422 for a missing feature, a value of the wrong type and an empty array (Block 3 test)
-- [ ] AC4: The `/predict` request body example in the OpenAPI schema is the model's input example (Block 3 test)
-- [ ] AC5: Without `--version` the latest version is used, and `mlbox serve` fails clearly for an unknown model or a run without `mlbox.image` (Block 2 and Block 4 tests)
-- [ ] AC6: After `docker build -t mlbox .`, `docker compose up -d` and `uv run mlbox run examples/iris/pipeline.py`, `uv run mlbox serve --model iris` serves on port 8080. `curl` on `/health`, `/info` and `/predict` (rows from `iris.csv`) returns ok, the model info and 3 class probabilities per row. `/docs` shows the input example, and Ctrl+C stops and removes the container
+- [x] `uv run ruff check` and `uv run ruff format --check` pass
+- [x] `uv run mypy .` passes
+- [x] `uv run pytest` passes
+- [x] AC1: An execution's run has the `mlbox.image` tag (Block 1 test)
+- [x] AC2: `/health`, `/info` and `/predict` work for a registered model, including integer, boolean and string features (Block 3 tests)
+- [x] AC3: `/predict` returns 422 for a missing feature, a value of the wrong type and an empty array (Block 3 test)
+- [x] AC4: The `/predict` request body example in the OpenAPI schema is the model's input example (Block 3 test)
+- [x] AC5: Without `--version` the latest version is used, and `mlbox serve` fails clearly for an unknown model or a run without `mlbox.image` (Block 2 and Block 4 tests)
+- [x] AC6: After `docker build -t mlbox .`, `docker compose up -d` and `uv run mlbox run examples/iris/pipeline.py`, `uv run mlbox serve --model iris` serves on port 8080. `curl` on `/health`, `/info` and `/predict` (rows from `iris.csv`) returns ok, the model info and 3 class probabilities per row. `/docs` shows the input example, and Ctrl+C stops and removes the container

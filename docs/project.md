@@ -142,14 +142,14 @@ curl localhost:8080/info
 ```bash
 curl -X POST localhost:8080/predict -H 'Content-Type: application/json' \
   -d '[{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2},
-       {"sepal_length": 6.7, "sepal_width": 3.0, "petal_length": 5.2, "petal_width": 2.3}]'
+       {"sepal_length": 6.2, "sepal_width": 3.4, "petal_length": 5.4, "petal_width": 2.3}]'
 ```
 
 ```json
-[[1.0, 0.0, 0.0], [0.0, 0.01, 0.99]]
+[[0.959, 0.041, 0.000004], [0.0007, 0.112, 0.887]]
 ```
 
-Values are checked against the model's schema by MLflow. An instance with a missing feature or a value of the wrong type (a string for a number) is rejected with HTTP 422 and MLflow's message, and so is an empty array. An integer is accepted for a `double` feature.
+Values are checked against the model's schema by MLflow. An instance with a missing feature (in any of the instances) or a value of the wrong type (a string for a number) is rejected with HTTP 422, and so is an empty array. A value can be `null`: the model decides what to do with it. An integer is accepted for a `double` feature.
 
 Interactive docs are at <http://localhost:8080/docs>, with the model's input example pre-filled in the `/predict` request body.
 
