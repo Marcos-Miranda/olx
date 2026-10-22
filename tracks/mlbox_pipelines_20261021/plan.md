@@ -83,15 +83,15 @@ Tests use a local MLflow store (sqlite in `tmp_path`, set through `MLFLOW_TRACKI
 - [x] `docs/project.md` (the README is left untouched): what mlbox is, setup (`docker build -t mlbox .`, `docker compose up -d`), defining a pipeline (steps, references, context), the `/opt/ml` container contract, and the CLI commands, using the iris example.
 
 ## Final verification
-- [ ] `uv run ruff check` and `uv run ruff format --check` pass
-- [ ] `uv run mypy .` passes
-- [ ] `uv run pytest` passes
-- [ ] AC1: Defining a pipeline like the task's example runs no step code, and `train` depends on `preprocess` (Block 1 test)
-- [ ] AC2: Non-JSON arguments and calling a step twice raise (Block 1 test)
-- [ ] AC3: The worker writes `result.json`, or `failure` for a raising or non-JSON step (Block 3 tests)
-- [ ] AC4: `get_context()` works inside a step and raises outside one (Block 3 tests)
-- [ ] AC5: The runner runs steps in parallel, resolves values and handles failures (Block 4 tests)
-- [ ] AC6: `mlbox run` with invalid parameters exits non-zero and creates no run (Block 6 test)
-- [ ] AC7: With `docker compose up -d`, `uv run mlbox run examples/iris/pipeline.py -p dataset_path=iris.csv` succeeds. The MLflow UI shows the run in the `iris` experiment with params, seed, metrics and every step `succeeded`, and the step files are in `.mlbox/runs/<run_id>/data`
-- [ ] AC8: `mlbox list` shows the run `FINISHED` and `mlbox show` shows every step `succeeded`. A run with a failing step (e.g. a `dataset_path` that doesn't exist) shows `FAILED`, with the failed and skipped steps
-- [ ] AC9: Two runs of the example with the same parameters and `--seed` log the same metrics
+- [x] `uv run ruff check` and `uv run ruff format --check` pass
+- [x] `uv run mypy .` passes
+- [x] `uv run pytest` passes
+- [x] AC1: Defining a pipeline like the task's example runs no step code, and `train` depends on `preprocess` (Block 1 test)
+- [x] AC2: Non-JSON arguments and calling a step twice raise (Block 1 test)
+- [x] AC3: The worker writes `result.json`, or `failure` for a raising or non-JSON step (Block 3 tests)
+- [x] AC4: `get_context()` works inside a step and raises outside one (Block 3 tests)
+- [x] AC5: The runner runs steps in parallel, resolves values and handles failures (Block 4 tests)
+- [x] AC6: `mlbox run` with invalid parameters exits non-zero and creates no run (Block 6 test)
+- [x] AC7: With `docker compose up -d`, `uv run mlbox run examples/iris/pipeline.py -p dataset_path=iris.csv` succeeds. The MLflow UI shows the run in the `iris` experiment with params, seed, metrics and every step `succeeded`, and the step files are in `.mlbox/runs/<run_id>/data`
+- [x] AC8: `mlbox list` shows the run `FINISHED` and `mlbox show` shows every step `succeeded`. A run with a failing step (e.g. a `dataset_path` that doesn't exist) shows `FAILED`, with the failed and skipped steps
+- [x] AC9: Two runs of the example with the same parameters and `--seed` log the same metrics
