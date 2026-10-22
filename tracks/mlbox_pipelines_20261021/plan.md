@@ -33,9 +33,9 @@ Tests use a local MLflow store (sqlite in `tmp_path`, set through `MLFLOW_TRACKI
 - [x] `load_pipeline(path: Path) -> Pipeline`: imports the file as a module (adding its directory to `sys.path` so sibling modules can be imported) and returns the single `Pipeline` instance among its globals.
 
 ## Block 2: MLflow tracking
-- [ ] Test: `start_run` creates a `RUNNING` run in the experiment named after the pipeline, with the parameters and the seed as params and every step `pending`.
-- [ ] Test: step status changes and `end_run` are reflected by `get_run`, and `list_runs` returns only mlbox runs, newest first, filtered by pipeline when asked.
-- [ ] `tracking.py`, using `MlflowClient` (no fluent active run on the host side):
+- [x] Test: `start_run` creates a `RUNNING` run in the experiment named after the pipeline, with the parameters and the seed as params and every step `pending`.
+- [x] Test: step status changes and `end_run` are reflected by `get_run`, and `list_runs` returns only mlbox runs, newest first, filtered by pipeline when asked.
+- [x] `tracking.py`, using `MlflowClient` (no fluent active run on the host side):
   - The tracking URI comes from `MLFLOW_TRACKING_URI`, defaulting to `http://localhost:5001` when it isn't set.
   - `start_run(pipeline: Pipeline, params: BaseModel, seed: int) -> str`: creates the experiment if needed, creates the run, logs the parameters (`model_dump(mode="json")`) and `random_seed` as params, tags `mlbox.pipeline=<name>` and `mlbox.step.<name>.status=pending` for each step, and returns the run ID.
   - `set_step_status(run_id, step_name, status)` and `end_run(run_id, succeeded: bool)` (`FINISHED` or `FAILED`).
