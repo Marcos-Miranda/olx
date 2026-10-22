@@ -8,13 +8,76 @@ services:
       --backend-store-uri sqlite:////mlflow/mlflow.db
       --artifacts-destination /mlflow/artifacts
       --serve-artifacts
-      --allowed-hosts mlflow:5000,localhost:5001
+      --allowed-hosts mlflow:5000,localhost:5001,localhost:5000
     ports:
       - "5001:5000"
     volumes:
       - mlflow-data:/mlflow
     networks:
       - mlbox
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request as u; u.urlopen('http://localhost:5000/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  model-training:
+    image: "mlbox:latest"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["mlbox"]
+    command: ["run", "examples/iris/pipeline.py"]
+    # `make up` sets these to the host user, so the run files it creates aren't owned by root
+    user: "${MLBOX_UID:-0}:${MLBOX_GID:-0}"
+    group_add:
+      - "${MLBOX_DOCKER_GID:-0}"
+    # Same path as on the host, since the daemon resolves the step containers' mounts on the host
+    working_dir: ${PWD}
+    environment:
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      HOME: /tmp
+    volumes:
+      - "${PWD}:${PWD}"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - mlbox
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    restart: no
+
+  model-serving:
+    image: "mlbox:latest"
+    pull_policy: never
+    entrypoint: ["mlbox"]
+    # Serves the latest version of the model, published by the serving container on localhost:8080
+    command: ["serve", "--model", "iris"]
+    user: "${MLBOX_UID:-0}:${MLBOX_GID:-0}"
+    group_add:
+      - "${MLBOX_DOCKER_GID:-0}"
+    # mlbox stops and removes the serving container on Ctrl+C, but would leave it running on SIGTERM
+    stop_signal: SIGINT
+    environment:
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      HOME: /tmp
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - mlbox
+    depends_on:
+      model-training:
+        condition: service_completed_successfully
+    restart: no
+
 
 volumes:
   mlflow-data:
