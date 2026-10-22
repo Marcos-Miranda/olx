@@ -42,13 +42,13 @@ Tests use a local MLflow store (sqlite in `tmp_path`, set through `MLFLOW_TRACKI
   - `list_runs(pipeline: str | None = None) -> list[RunInfo]` and `get_run(run_id) -> RunInfo`. `RunInfo` is a dataclass with run ID, pipeline, status, start and end time, params, seed and `step_statuses: dict[str, str]`. Runs without the `mlbox.pipeline` tag are ignored.
 
 ## Block 3: Context and step worker
-- [ ] Test: `get_context()` outside a step execution raises.
-- [ ] Test: given an `/opt/ml`-style directory (code, config, data, output) under `tmp_path` and an MLflow run, the worker runs the named step with its arguments and writes `result.json` (with `Path` values as strings). Inside the step, `get_context()` returns the validated parameters, the data path and the seed, `random` is seeded with it, and a metric logged with plain `mlflow.log_metric` lands in the run, which is still `RUNNING` afterwards (AC3, AC4).
-- [ ] Test: a step that raises, or returns a non-JSON value, makes the worker write `output/failure` with the error, write no `result.json` and return a non-zero exit code (AC3).
-- [ ] `context.py`:
+- [x] Test: `get_context()` outside a step execution raises.
+- [x] Test: given an `/opt/ml`-style directory (code, config, data, output) under `tmp_path` and an MLflow run, the worker runs the named step with its arguments and writes `result.json` (with `Path` values as strings). Inside the step, `get_context()` returns the validated parameters, the data path and the seed, `random` is seeded with it, and a metric logged with plain `mlflow.log_metric` lands in the run, which is still `RUNNING` afterwards (AC3, AC4).
+- [x] Test: a step that raises, or returns a non-JSON value, makes the worker write `output/failure` with the error, write no `result.json` and return a non-zero exit code (AC3).
+- [x] `context.py`:
   - `Context[P: BaseModel]`, a frozen dataclass with `input_params: P`, `data_path: Path`, `random_seed: int` and an `mlflow` property returning the `mlflow` module.
   - The current context lives in a `ContextVar`. `get_context(params_type: type[P] | None = None)` returns it (typed with overloads) or raises outside a step. It also raises if `params_type` isn't the pipeline's parameter model. A private `_use_context(ctx)` context manager sets it for the worker.
-- [ ] `worker.py`:
+- [x] `worker.py`:
   - `run_step(root: Path = Path("/opt/ml")) -> int`: reads `input/config/step.json` (pipeline file name, step name, args, kwargs, seed, run ID) and `hyperparameters.json`, loads the pipeline from `root/code`, validates the parameters, seeds `random` and NumPy (if importable), resumes the MLflow run with `mlflow.start_run(run_id=...)`, runs `step.func(*args, **kwargs)` inside `_use_context`, converts the result with `to_json_value` and writes `output/result.json`. It then ends the fluent run with `RUNNING` status so the runner stays in control of the final status. Any exception writes the traceback to `output/failure` and returns 1.
   - `python -m mlbox.worker` calls `run_step()` and exits with its return code.
 
