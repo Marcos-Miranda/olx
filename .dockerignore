@@ -1,0 +1,10 @@
+.git
+.venv
+.mlbox
+.mypy_cache
+.pytest_cache
+.ruff_cache
+__pycache__
+tests
+tracks
+examples

@@ -16,6 +16,7 @@ dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.1",
+    "types-docker>=7.2.0.20261006",
 ]
 
 [tool.ruff]
