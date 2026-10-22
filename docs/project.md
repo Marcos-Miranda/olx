@@ -101,7 +101,57 @@ If a step fails, no new steps start, running steps finish and the steps that nev
 
 Each execution is one MLflow run in an experiment named after the pipeline. Its ID is the mlbox run ID. The parameters and the seed are logged as run params, and metrics logged by the steps land in the same run.
 
-MLflow is also where the execution state lives: the run status is `RUNNING`, then `FINISHED` or `FAILED`, and each step's status (`pending`, `running`, `succeeded`, `failed`, `skipped`) is the run tag `mlbox.step.<name>.status`. Runs created by mlbox carry the tag `mlbox.pipeline`.
+MLflow is also where the execution state lives: the run status is `RUNNING`, then `FINISHED` or `FAILED`, and each step's status (`pending`, `running`, `succeeded`, `failed`, `skipped`) is the run tag `mlbox.step.<name>.status`. Runs created by mlbox carry the tag `mlbox.pipeline`, and the tag `mlbox.image` with the image their steps ran in (so a model trained by the run can be served with it).
+
+## Serving
+
+```bash
+uv run mlbox serve --model iris                  # latest version, on http://localhost:8080
+uv run mlbox serve --model iris --version 2 --port 9000 --workers 2
+```
+
+`mlbox serve` serves a model registered in MLflow (the one a pipeline registers with `ctx.register_model`, named after the pipeline). Without `--version` it serves the latest version, the highest number. Any extra argument goes to uvicorn (`--workers 2` above). It runs in the foreground, streaming the container logs, until Ctrl+C, which stops and removes the container.
+
+The API runs in a container created from the **image that trained the model**, found in the `mlbox.image` tag of the training run, so serving uses the same dependencies as training. The container joins the `mlbox` network, reaches MLflow like a step does, loads the model at startup and publishes its port 8080 on `--port` (default 8080). The command exits with an error, without starting a container, if the model or version doesn't exist, if its run has no `mlbox.image` tag (a model registered outside mlbox) or if the image is no longer on your machine. The API needs FastAPI, which is part of the base image: rebuild it (`docker build -t mlbox .`) and run the pipeline again to serve models trained before it was added.
+
+### Endpoints
+
+`GET /health` returns `{"status": "ok"}`.
+
+`GET /info` returns the model name, version and input schema (the MLflow signature):
+
+```bash
+curl localhost:8080/info
+```
+
+```json
+{
+  "name": "iris",
+  "version": 1,
+  "input_schema": [
+    {"name": "sepal_length", "type": "double", "required": true},
+    {"name": "sepal_width", "type": "double", "required": true},
+    {"name": "petal_length", "type": "double", "required": true},
+    {"name": "petal_width", "type": "double", "required": true}
+  ]
+}
+```
+
+`POST /predict` takes a JSON array with one object per instance, mapping each feature to its value, and returns one list of floats per instance: a single value for a regressor, one probability per class for a classifier.
+
+```bash
+curl -X POST localhost:8080/predict -H 'Content-Type: application/json' \
+  -d '[{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2},
+       {"sepal_length": 6.7, "sepal_width": 3.0, "petal_length": 5.2, "petal_width": 2.3}]'
+```
+
+```json
+[[1.0, 0.0, 0.0], [0.0, 0.01, 0.99]]
+```
+
+Values are checked against the model's schema by MLflow. An instance with a missing feature or a value of the wrong type (a string for a number) is rejected with HTTP 422 and MLflow's message, and so is an empty array. An integer is accepted for a `double` feature.
+
+Interactive docs are at <http://localhost:8080/docs>, with the model's input example pre-filled in the `/predict` request body.
 
 ## CLI
 
@@ -109,6 +159,7 @@ MLflow is also where the execution state lives: the run status is `RUNNING`, the
 | ------- | ----------- |
 | `mlbox run <pipeline_file> [-p key=value ...] [--seed N]` | Validate the parameters, build the image and run the pipeline. Streams logs prefixed with the step name, prints the run ID and the final status, and exits non-zero on failure. Without `--seed`, one is generated and logged |
 | `mlbox list [--pipeline NAME]` | List runs, newest first: run ID, pipeline, status, start time and duration |
-| `mlbox show <run_id>` | Show a run's pipeline, status, parameters, seed and the status of each step |
+| `mlbox show <run_id>` | Show a run's pipeline, status, image, parameters, seed and the status of each step |
+| `mlbox serve --model NAME [--version N] [--port PORT] [UVICORN_ARGS...]` | Serve a registered model through a REST API. See [Serving](#serving) |
 
 Parameter values are parsed as JSON when possible (`test_size=0.3`, `n_estimators=50`) and as strings otherwise (`dataset_path=iris.csv`).

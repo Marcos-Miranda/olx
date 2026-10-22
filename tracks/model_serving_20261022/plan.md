@@ -49,7 +49,7 @@ Tests keep using the local sqlite MLflow store. A shared fixture registers a sma
 - [x] `main.py`: `serve(--model, --version, --port=8080)`, with Typer's `allow_extra_args` and `ignore_unknown_options` so the extra arguments (`ctx.args`) go to uvicorn. It looks up the version with `get_model_version` (exit 1 with the message on `ValueError`) and prints the model, version, image and `http://localhost:<port>`. It then calls `serve_model` (exit 1 on `RuntimeError`) and exits with its code.
 
 ## Block 5: Docs
-- [ ] `docs/project.md`:
+- [x] `docs/project.md`:
   - A "Serving" section: `mlbox serve`, its options and uvicorn passthrough, the reuse of the training image (and that the base image must be rebuilt to include FastAPI), and the three endpoints with `curl` examples using iris rows.
   - A new row in the CLI table and the `mlbox.image` tag in the Tracking section.
 
