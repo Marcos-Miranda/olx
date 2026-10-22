@@ -3,9 +3,11 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
-from types import ModuleType
 from typing import Any, overload
 
+import mlflow
+import pandas as pd
+from mlflow.models import infer_signature
 from pydantic import BaseModel
 
 
@@ -16,13 +18,29 @@ class Context[P: BaseModel]:
     input_params: P
     data_path: Path
     random_seed: int
+    pipeline_name: str
 
     @property
-    def mlflow(self) -> ModuleType:
+    def mlflow(self) -> "mlflow":  # type: ignore [valid-type]
         """The `mlflow` module, with the execution's run already active."""
-        import mlflow
-
         return mlflow
+
+    def register_model(self, model: Any, input_data: pd.DataFrame, predict_function: str) -> int:
+        """Log `model` to the active run, register it under the pipeline's name and return the new version.
+
+        `predict_function` names the method of `model` that makes predictions. The signature is inferred from
+        `input_data`.
+        """
+        predict = getattr(model, predict_function)
+        model_info = mlflow.pyfunc.log_model(
+            name="model",
+            # MLflow requires a callable with exactly one parameter, and methods like `(X, **params)` have two
+            python_model=lambda model_input: predict(model_input),
+            signature=infer_signature(input_data, predict(input_data)),
+            input_example=input_data.head(5),
+            registered_model_name=self.pipeline_name,
+        )
+        return model_info.registered_model_version
 
 
 _current: ContextVar[Context[Any] | None] = ContextVar("mlbox_context", default=None)

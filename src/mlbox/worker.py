@@ -26,6 +26,7 @@ def run_step(root: Path = Path("/opt/ml")) -> int:
             input_params=pipeline.parameters.model_validate(hyperparameters),
             data_path=root / "data",
             random_seed=spec["seed"],
+            pipeline_name=pipeline.name,
         )
         _seed(context.random_seed)
 

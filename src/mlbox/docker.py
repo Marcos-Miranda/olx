@@ -23,10 +23,11 @@ RUN uv pip install --system -r /tmp/requirements.txt
 
 
 def build_pipeline_image(pipeline: Pipeline, pipeline_dir: Path) -> str:
-    """Return the image to run the pipeline's steps in, building it if the requirements aren't installed yet."""
+    """Return the image to run the pipeline's steps in, building it if it doesn't exist for these requirements and
+    the current base image yet."""
     client = docker.from_env()
     try:
-        client.images.get(BASE_IMAGE)
+        base = client.images.get(BASE_IMAGE)
     except ImageNotFound:
         raise RuntimeError(f"The base image {BASE_IMAGE} doesn't exist; build it with `docker build -t mlbox .`")
     if pipeline.requirements is None:
@@ -34,7 +35,9 @@ def build_pipeline_image(pipeline: Pipeline, pipeline_dir: Path) -> str:
 
     requirements = (pipeline_dir / pipeline.requirements).read_bytes()
     name = re.sub(r"[^a-z0-9_.-]", "-", pipeline.name.lower())
-    tag = f"mlbox-{name}:{hashlib.sha256(requirements).hexdigest()[:12]}"
+    # The base image's id is part of the tag, so rebuilding the base image rebuilds the pipeline's image too
+    digest = hashlib.sha256(requirements + str(base.id).encode()).hexdigest()[:12]
+    tag = f"mlbox-{name}:{digest}"
     try:
         client.images.get(tag)
     except ImageNotFound:

@@ -9,8 +9,8 @@ class InputParams(BaseModel):
     """Parameters of the pipeline, given with `-p key=value`."""
 
     dataset_path: str = "iris.csv"
-    test_size: float = 0.2
-    n_estimators: int = 100
+    test_size: float = 0.7
+    n_estimators: int = 2
 
 
 # The libraries from requirements.txt are only installed in the step containers,
@@ -52,14 +52,18 @@ def train_random_forest(train_path: str) -> Path:
 
 @step()
 def train_logistic_regression(train_path: str) -> Path:
-    """Train a logistic regression and return the path of the saved model."""
+    """Train a logistic regression, with missing values imputed first, and return the path of the saved model."""
     import joblib
     import pandas as pd
+    from sklearn.impute import SimpleImputer
     from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import make_pipeline
 
     ctx = get_context(InputParams)
     train = pd.read_csv(train_path)
-    model = LogisticRegression(max_iter=500, random_state=ctx.random_seed)
+    model = make_pipeline(
+        SimpleImputer(strategy="median"), LogisticRegression(max_iter=500, random_state=ctx.random_seed)
+    )
     model.fit(train.drop(columns="target"), train["target"])
     model_path = ctx.data_path / "logistic_regression.joblib"
     joblib.dump(model, model_path)
@@ -75,11 +79,16 @@ def evaluate(test_path: str, random_forest_path: str, logistic_regression_path: 
     ctx = get_context(InputParams)
     test = pd.read_csv(test_path)
     features, target = test.drop(columns="target"), test["target"]
-    models = {"random_forest": random_forest_path, "logistic_regression": logistic_regression_path}
+    models = {
+        "random_forest": joblib.load(random_forest_path),
+        "logistic_regression": joblib.load(logistic_regression_path),
+    }
     accuracies = {}
-    for name, model_path in models.items():
-        accuracies[name] = float(joblib.load(model_path).score(features, target))
+    for name, model in models.items():
+        accuracies[name] = float(model.score(features, target))
         ctx.mlflow.log_metric(f"{name}_accuracy", accuracies[name])
+    best_model = max(accuracies, key=accuracies.get)
+    ctx.register_model(models[best_model], input_data=features, predict_function="predict_proba")
     return accuracies
 
 
