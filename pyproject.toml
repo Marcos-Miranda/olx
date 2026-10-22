@@ -34,7 +34,7 @@ ignore = ["D100", "D104", "D105", "D107"]
 warn_unused_ignores = true
 warn_redundant_casts = true
 disallow_untyped_defs = true
-exclude = ["tests"]
+exclude = ["tests", "examples"]
 
 [tool.coverage.run]
 omit = ["*/__init__.py"]

@@ -75,12 +75,12 @@ Tests use a local MLflow store (sqlite in `tmp_path`, set through `MLFLOW_TRACKI
   - `show(run_id)`: pipeline, status, parameters, seed and one line per step with its status.
 
 ## Block 7: Example and docs
-- [ ] `examples/iris/`: `iris.csv` (the Iris dataset with a `target` column), `requirements.txt` (`pandas`, `scikit-learn`, `joblib`) and `pipeline.py` with parameters (`dataset_path`, `test_size`, `n_estimators`) and these steps:
+- [x] `examples/iris/`: `iris.csv` (the Iris dataset with a `target` column), `requirements.txt` (`pandas`, `scikit-learn`, `joblib`) and `pipeline.py` with parameters (`dataset_path`, `test_size`, `n_estimators`) and these steps:
   - `preprocess`: splits the dataset into train and test CSVs in `data_path` and returns their paths.
   - `train_random_forest` and `train_logistic_regression`: run in parallel, each saves a model trained with `random_state=ctx.random_seed` and returns its path.
   - `evaluate`: logs each model's test accuracy as an MLflow metric and returns them.
-- [ ] Add `.mlbox/` to `.gitignore`.
-- [ ] `docs/project.md` (the README is left untouched): what mlbox is, setup (`docker build -t mlbox .`, `docker compose up -d`), defining a pipeline (steps, references, context), the `/opt/ml` container contract, and the CLI commands, using the iris example.
+- [x] Add `.mlbox/` to `.gitignore`.
+- [x] `docs/project.md` (the README is left untouched): what mlbox is, setup (`docker build -t mlbox .`, `docker compose up -d`), defining a pipeline (steps, references, context), the `/opt/ml` container contract, and the CLI commands, using the iris example.
 
 ## Final verification
 - [ ] `uv run ruff check` and `uv run ruff format --check` pass
